@@ -1,0 +1,432 @@
+---
+title: "Final Project"
+author: "Jorden"
+date: "10/16/2020"
+output: 
+  html_document:
+    code_folding: hide
+  
+---
+
+# Can Cinderellas Be Predicted in College Basketball
+
+
+
+### Intro
+
+  Basketball is an incredibly intricate and complex game. There are so many factors that  determine the winner of a game that it is almost impossible to distinguish which ones are primarily responsible for the outcome. College basketball in particular is especially unpredictable. The sheer amount of games that teams play, as well as the amount of teams there are in general create extreme unpredictability. That unpredictability reaches its peak in the annual tournament coined “March Madness”. March Madness is simply that, “madness”. The tournament is structured as follows : six rounds of single elimination basketball with matchups determined by the seed of the team. That seed that is supposed to correspond with the quality of a team, the closer a seed is to one the better a team is, while the closer a team is seeded to sixteen the worse a team is. In the first round the one seed will play the sixteen seed, the two seed will play the fifteen seed, the three seed will play the fourteen seed… etc. Sometimes a team will win multiple games that they weren’t supposed to win. Take Loyala Chicago for example, they came into the tournament as an 11 seed entering the 2018 tournament. An 11 seed has a 2.4% chance of making the final four (Boyd’s Bets). Yet they did. Loyola Chicago is an example of a Cinderella : a team that wins multiple games in the tournament that they were not supposed to. In this study, I wanted to see if there was a stat that people have been overlooking that could predict whether teams would become Cinderellas or not. 
+
+
+
+### Ethics 
+  People have long struggled with making money through betting on sports, gamblers have lost thousands upon thousands of dollars doing so. Part of the thrill of gambling on sports is the knowledge that one could either make a million dollars, or lose everything. If I had found a statistical difference among Cinderella teams compared to normal teams, I would have had to be very careful about the way I presented it. If I presented it as a 100% truth, I could be misleading people to gamble more. Nothing in sports is 100% and portraying it as such is a dangerous and reckless notion. People could have lost thousands of dollars using my model. Ethically, could I present my model knowing that it was not 100% correct and that it could mislead people into gambling more money?
+
+
+
+### Setup and Explanation of Data
+
+  For this study, a Cinderella team is defined as a team that had less than a 15% chance of making it to the sweet sixteen (two wins in the tournament), yet they still made it to that round. Using this model, I found over fifteen teams from the datasets I had compiled that fit that definition and filtered them into a new dataset that I called “cinderella”. 
+  In defining “Cinderella” this way, teams such as the 2018 UMBC team that became the first sixteen seed to upset a one seed and would traditionally be considered Cinderellas, were not considered to be Cinderellas because they did not win two games in the tournament. For these teams I created a new dataset called the “Non-Cinderellas”. While these teams may have technically drastically overperformed expectations by winning one game, they still felt short of meeting this studies requirements for being categorized as a Cinderella. The reason that they are still included in this study is because in order to find if there is a stat that can determine whether a team will become a Cinderella or not, comparisons will have to be made to these Non-Cinderella teams. If my analysis showed that there was no difference between these two categories of teams, the process and chances of a team becoming a Cinderella are truly random.
+  In order to provide more context to my data I created a third category of team called the “Balancers”. These teams were randomly selected to fill out more space and give more context to my analysis, as well as to create more accurate models. Essentially, these are just teams to provide more context and data points for my analysis later.
+
+  I then combined these datasets together to form new, larger datasets that showed the trend for all teams called “allCombined”. I also created another dataset exclusively combining the NonCinderella and Balancers called “randoms” in order to conduct analysis on the teams in my datasets that were not considered Cinderellas.
+  
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(stringr)
+library(GGally)
+library(purrr)
+library(tidyverse)
+library(Hmisc)
+library(ggplot2)
+library(dplyr)
+library(stats)
+library(ggfortify)
+setwd("C:/Users/ganfi/OneDrive/Documents/DA101/Final Project")
+stats2005 <- read.csv("2006.csv")
+stats2008 <- read.csv("2008.csv")
+stats2011 <- read.csv("2011.csv")
+
+stats2013 <- read.csv("2013.csv")
+stats2014 <- read.csv("2014.csv")
+stats2015 <- read.csv("2015.csv")
+stats2016 <- read.csv("2016.csv")
+stats2017 <- read.csv("2017.csv")
+stats2018 <- read.csv("2018.csv")
+seedWin <- read.csv("SeedWin.csv")
+allCombinedYears <- rbind(stats2013,stats2014,stats2015,stats2016,stats2017,stats2018)
+```
+### Description of Data
+
+My data was made up of stats from 2006, 2008, 2011, 2013, 2014, 2015, 2016, 2017, and 2018 seasons compiled from the website Sports Reference (in .csv form). The observations in this dataset included fairly elementary values such as the team name, games played, wins, losses, total points scored, etc. The data then had to be wrangled to become useful using the mutate function. The main statistics I created using this function were based on the values the team had per game (averages) rather than the whole season. For example, I used the mutate function to create the statistic “points per game” by dividing the total points the team had scored by the number of games they played. I had to do this because some of the teams had played a different number of games than the others, and in order to evaluate the teams equally I had to evaluate them based on their averages and not their totals. I continued to do this for other stats such as strength of schedule per game (average strength of opposing team), opponent points per game, turnovers per game, and average margin of victory per game. I also used mutate to create a new variable called CinderellaStat which stated which type of team (Cinderella, Non-Cinderella, Balancer) a team was. This was done in order to make visualizing the data easier when combining the different datasets, for example, setting color to CinderellaStat would make it easier to compare the different datasets on the same plot.
+
+### Creation of Teams Through Filtering Datasets
+
+
+```{r team creation}
+#Cinderella
+georgeMason <- filter(stats2005, School == "George Mason NCAA" )
+
+davidson <- filter(stats2008, School == "Davidson NCAA" )
+
+
+vcu <- filter(stats2011, School == "Virginia Commonwealth NCAA" )
+butler <- filter(stats2011, School == "Butler NCAA" )
+richmond <- filter(stats2011, School == "Richmond NCAA" )
+
+wsu <- filter(stats2013, School == "Wichita State NCAA" )
+fGCU <- filter(stats2013, School == "Florida Gulf Coast NCAA" )
+
+kentucky2014 <- filter(stats2014, School == "Kentucky NCAA" )
+uconn <- filter(stats2014, School == "Connecticut NCAA" )
+dayton <- filter(stats2014, School == "Dayton NCAA" )
+stanford <- filter(stats2014, School == "Stanford NCAA")
+
+#lassalle
+ncstate <- filter(stats2015, School == "North Carolina State NCAA" )
+
+#ucla <- filter(stats2015, School == "UCLA NCAA" )
+
+syracuse <- filter(stats2016, School == "Syracuse NCAA" )
+
+xavier <- filter(stats2017, School == "Xavier NCAA" )
+
+floridaSt <- filter(stats2018, School == "Florida State NCAA" )
+kansasSt <- filter(stats2018, School == "Kansas State NCAA" )
+loyolaChicago <- filter(stats2018, School == "Loyola (IL) NCAA" )
+#Noncinderellas
+#12
+yale <- filter(stats2016, School == "Yale NCAA")
+littleRock <- filter(stats2016, School == "Little Rock NCAA")
+olemiss <- filter(stats2013, School == "Mississippi NCAA")
+#13
+morehead <- filter(stats2011, School == "Morehead State NCAA")
+marshall <- filter(stats2018, School == "Marshall NCAA" )
+#14
+harvard <- filter(stats2013, School == "Harvard NCAA" )
+sfa2016 <- filter(stats2016, School == "Stephen F. Austin NCAA" )
+uab <- filter(stats2015, School == "Alabama-Birmingham NCAA" )
+#15
+midTennessee <- filter(stats2016, School == "Middle Tennessee NCAA" )
+#16
+uMBC <- filter(stats2018, School == "Maryland-Baltimore County NCAA" )
+#random teams
+uvm <- filter(stats2017, School == "Vermont NCAA" )
+wsu2014 <- filter(stats2014, School == "Wichita State NCAA" )
+michigan2014 <- filter(stats2014, School == "Michigan NCAA" )
+florida2014 <- filter(stats2014, School == "Florida NCAA" )
+wofford <- filter(stats2014, School == "Wofford NCAA" )
+calPoly <- filter(stats2014, School == "Cal Poly NCAA" )
+albany <- filter(stats2014, School == "Albany (NY) NCAA" )
+easternK <- filter(stats2014, School == "Eastern Kentucky NCAA" )
+
+kentucky2015 <- filter(stats2015, School == "Kentucky NCAA" )
+wvu2016 <- filter(stats2016, School == "West Virginia NCAA")
+wvu2017 <- filter(stats2017, School == "West Virginia NCAA")
+georgetown <- filter(stats2013, School == "Georgetown NCAA" )
+
+weberSt <- filter(stats2016, School == "Weber State NCAA")
+stonyBrook <- filter(stats2016, School == "Stony Brook NCAA")
+holyCross <- filter(stats2016, School == "Holy Cross NCAA")
+fresnoSt <- filter(stats2016, School == "Fresno State NCAA")
+villanova2016 <- filter(stats2016, School == "Villanova NCAA")
+
+michigan2018 <- filter(stats2018, School == "Michigan NCAA")
+uva2018 <- filter(stats2018, School == "Virginia NCAA")
+villanova2018 <- filter(stats2018, School == "Villanova NCAA")
+wichita2018 <- filter(stats2018, School == "Wichita State NCAA")
+msu <- filter(stats2018, School == "Michigan State NCAA")
+miami <- filter(stats2018, School == "Miami (FL) NCAA")
+```
+
+
+### Forming New Datasets
+```{r new datasets}
+#These are the classic cinderella teams who made it far in the tournament and exceeded expectations
+cinderella<-rbind(georgeMason,fGCU,loyolaChicago,davidson, uconn, kentucky2014, syracuse, wsu, dayton, vcu, butler, richmond,xavier,stanford,ncstate)
+
+#Teams that maybe upset one team and lost the next game
+nonCinderella <- rbind(uMBC,midTennessee, harvard,sfa2016,morehead,uab,marshall,yale, littleRock)
+
+#called balancers bc they don't belong to the other two groups, random teams to compare Cinderella teams to
+balancers<-rbind(uvm, michigan2014, wsu2014,  kentucky2015,wvu2016,georgetown,wvu2017,florida2014, weberSt, stonyBrook, holyCross, fresnoSt, uva2018, villanova2016,villanova2018,michigan2018, wichita2018, msu, miami, calPoly, wofford, albany, easternK)
+
+
+
+
+```
+
+
+
+
+### Manipulating Datasets
+```{r manipulation}
+
+#getting rid of unused columns / empty ones
+cinderella<- select(cinderella, School, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed)
+nonCinderella<- select(nonCinderella, School, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed)
+balancers<- select(balancers, School, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed)
+
+allCombinedYears<-mutate(allCombinedYears, ppg = Points/G)%>%
+  mutate(allCombinedYears, oPpg = Opoints/G) %>%
+  mutate(avMarg = ppg-oPpg)
+
+#using mutate to create new statistics that will be useful for evaluations
+
+cinderella <- mutate(cinderella, ppg = Points/G)%>%
+  mutate(cinderella, oPpg = Opoints/G) %>%
+  mutate(cinderellaStat = "Cinderella") %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G) %>%
+  mutate(SOSPerGame = SOS/G)
+
+nonCinderella <- mutate(nonCinderella, ppg = Points/G) %>%
+  mutate(nonCinderella, oPpg = Opoints/G) %>%
+  mutate(cinderellaStat = "NonCinderella") %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G) %>%
+  mutate(SOSPerGame = SOS/G)
+
+balancers <- mutate(balancers, ppg = Points/G) %>%
+  mutate(balancers, oPpg = Opoints/G) %>%
+  mutate(cinderellaStat = "Balancers") %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G) %>%
+  mutate(SOSPerGame = SOS/G)
+
+#combining Cinderella and non cinderella
+combined <- rbind(nonCinderella, cinderella)
+combined <- mutate(combined, ppg = Points/G) %>%
+  mutate(combined, oPpg = Opoints/G) %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G)%>%
+  mutate(SOSPerGame = SOS/G)
+
+#combining non-cinderella and balancers
+randoms <-rbind(nonCinderella,balancers)
+randoms <- mutate(randoms, ppg = Points/G) %>%
+  mutate(randoms, oPpg = Opoints/G) %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G)%>%
+  mutate(SOSPerGame = SOS/G)
+#combining Cinderella, non-Cinderella and balancers
+allCombined <-rbind(nonCinderella, cinderella, balancers)
+allCombined <- mutate(allCombined, ppg = Points/G) %>%
+  mutate(allCombined, oPpg = Opoints/G) %>%
+  mutate(avMarg = ppg-oPpg) %>%
+  mutate(turnPerGame = TOV/G)%>%
+  mutate(SOSPerGame = SOS/G)
+
+#making datasets that are usuable with the means function, essentially removing anything non numeric which just happens to be the names
+noNameCinderella<- select(cinderella, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed, avMarg, oPpg, ppg, turnPerGame, SOSPerGame)
+nonNameNonCinderella<- select(nonCinderella, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed, avMarg, oPpg, ppg, turnPerGame, SOSPerGame)
+
+noNameBalancers <- select(balancers, G, W, L, W.L., SRS, SOS, ConfW, ConfL, HomeW, AwayW, AwayL, Points, Opoints, MP,	FG,	FGA,	FG.,	X3P,	X3PA,	X3P.,	FT,	FTA,	FT.,	ORB,	TRB,	AST,	STL,	BLK,	TOV,	PF,	TWins,	Seed, avMarg, oPpg, ppg, turnPerGame, SOSPerGame)
+
+noNameCombined <- rbind(noNameBalancers, noNameCinderella,nonNameNonCinderella)
+
+
+
+```
+
+```{r visualizing datasets}
+
+ggplot(allCombined) + geom_histogram(aes(x = G)) 
+
+cindStat <- select(allCombined, cinderellaStat)
+
+ggplot(data = cindStat) + geom_bar(mapping = aes(x = cinderellaStat, fill = cinderellaStat))
+                                   
+
+
+```
+Games Played Histogram Caption :
+The fact that there are many different values for the amount of games played showed me that I would have to adjust most statistics to be averages per game rather than season totals. For example, a team that plays 40 games is obviously going to have more total points than a team that played 30 games, thus adjusting it is necessary.
+
+How many teams are in each category:
+This bar graph was necessary to create to show how many teams are in each of the categories I previously created. The amount of Balancers are so much higher than the other two categories because there were simply more options to pick from. While the Cinderella and Noncinderella categories were restricted to certain categories the Balancers category was not.
+
+
+### Statistical Analysis and Interpretation 
+
+This study evaluated the differences between Cinderella and teams that did not become Cinderellas (Non-Cinderellas) in an attempt to determine if there is a statistic that can be used to differentiate between the two. In other words, is there something that can predict whether a team will become a Cinderella? In order to see if there was a statistic that was significantly different among Cinderella teams, I took the means of the stat for the Cinderella teams and compared it to the mean of the stat to the balancers and of Non-Cinderellas. I found that there were essentially no significant differences between the means of the Cinderella team’s stats and Non-Cinderella’s stats, except for strength of schedule per game (SOSPG). The average SOSPG for Cinderellas was 0.1512724 while it was -0.0443379 for Non-Cinderellas. This was enough of a difference for me to conduct further analysis on that stat. When I evaluated this statistic further using a scatter plot to represent the relationship between SOSPG and tournament wins I found that there was only one case when a team with a negative SOSPG made it past the second round. This means that when one is filling out their bracket and looking at teams that could possibly become Cinderellas, be weary of teams with a negative SOSPG as they are highly likely to lose in either the first or second round. However, when measuring the correlation between tournament wins and SOSPG of Cinderella teams I found that it was extremely low, 0.16 to be exact. The scatter plot I created showing this relationship further backed up this claim. However, this is to be expected and provides more credence to the notion that the process of becoming a Cinderella is random and thus what teams become Cinderellas is random. Further, when I checked the correlation of tournament wins and SOSPG for the “Randoms” dataset, I found that it was significantly higher at 0.5, adding even more credibility to the notion that becoming a Cinderella is ultimately up to chance because the correlation among Cinderella teams was so much lower than the other teams.
+
+Continuing to evaluate whether SOSPG is a credible statistic to use when predicting which teams will be Cinderellas, I created a linear model to predict the amount of wins in the tournament a team would have based SOSPG using the predict function. After comparing the predicted results of the model with the actual data, I found the model was fairly inaccurate, often overestimating or underestimating a team's wins in the tournament by 1. I found that supplementing SOSPG with another statistic such as “wins” the model somewhat more accurate, however, it was nowhere near 100% accurate. For example, while the model predicted that UMBC would win one game in the tournament, it also predicted that the team that they beat : Virginia would win four games. This shows that even the most promising of the stats(SOSPG) in my dataset was not able to accurately predict which teams would become Cinderellas.
+
+
+
+#### Analyzing the means of the different types of teams (Cinderella, Non-Cinderella, Balancers)
+```{r analyzing mean}
+#Using the datasets that removed the team names to make new datasets showing the means for each stat
+CinderellaMeans <- colMeans(noNameCinderella)
+OneWinMeans <- colMeans(nonNameNonCinderella)
+BalancerMeans <- colMeans(noNameBalancers)
+means <- rbind(CinderellaMeans, BalancerMeans, OneWinMeans)
+print(means)
+
+
+```
+As you can see, many of the statistics have little significant difference (The difference in wins is due to Cinderellas playing more games on average). The only promising diffence in the means was in the SOSPerGame statistic, which I analyzed further.
+
+#### Looking at Correlations between SOSPerGame and Twins in the different datasets
+```{r Cinderella vs Others correlations}
+cindSOs <- as.numeric(cinderella$SOSPerGame)
+cindTWins <- as.numeric(cinderella$TWins)
+cor(cindSOs,cindTWins)
+
+#others
+balSOS <- as.numeric(randoms$SOSPerGame)
+balTWins <- as.numeric(randoms$TWins)
+cor(balSOS, balTWins)
+
+```
+As you can see, the correlation between TWins and SOSPG for Cinderellas was much less than the correlation for the 'Randoms'. This shows that the model I create in the next step will be less accurate when measuring Cinderella teams as there is less of a relationship between SOSPG and TWins among Cinderella teams.
+
+```{r making models}
+# making a t test to measure the correlation between 
+#creating a model to try and accurately predict tournament wins using statistics 
+#use to see whether a team grossly overperformed or underperformed
+
+predictedWins <- lm(TWins ~ SOSPerGame + W, allCombined)
+selected <- select(allCombined, School, TWins)
+
+predict(predictedWins)
+
+
+#residuals of my prediction model
+
+ggplot(predictedWins, aes(predictedWins$residuals), bins = 10)+ geom_histogram( fill = "blue") +geom_density(color = "white")+ ggtitle("Residuals of the SOSPG Predicted Model") +
+  xlab("Difference in Predicted Tournament wins to Actual \n Tournament Wins") + ylab("count")
+
+
+```
+
+#### Residual Histogram Caption
+  This residual histogram and density plot shows that while a good portion of the predicted values for the amount of tournament wins were accurate, there were quite a few predictions that were off by a couple of games. This model obviously wasn't 100% accurate. 
+
+
+
+
+### Relationship between Strength of Schedule Per Game and Tournament Wins By Different Categories
+```{r Cinderella vs Others Plots}
+
+#Checking to see if Cinderellas follow the same trend as others for SOS
+#SOS was adjusted to per game because teams did not play the same amount of games
+ggplot(cinderella)+geom_point(aes(x = TWins, y=SOSPerGame, color = School))+geom_smooth(method = 'lm', aes(x = TWins, y=SOSPerGame)) +ggtitle("The relationship between wins in the tournament\n  and strength of schedule for Cinderella teams")+ xlab('Wins in Tournament') + ylab("Strength of Schedule (Per Game)")
+
+
+ggplot(randoms)+geom_point(aes(x = TWins, y=SOSPerGame, color = School))+geom_smooth(method = 'lm', aes(x = TWins, y=SOSPerGame))+ggtitle("The relationship between wins in the tournament\n  and strength of schedule for the 'random' teams")+ xlab('Wins in Tournament') + ylab("Strength of Schedule (Per Game)")
+
+
+
+#Plotting by cinderellaStat relationship between SOSPerGame and TWins
+ggplot(allCombined)+geom_point(aes(x = TWins, y=SOSPerGame, color = cinderellaStat))+geom_smooth(method = 'lm', aes(x = TWins, y=SOSPerGame))+ggtitle("The relationship between wins in the tournament\n  and strength of schedule for the ALL teams")+ xlab('Wins in Tournament') + ylab("Strength of Schedule (Per Game)")
+
+
+
+
+```
+As referenced previously, these scatter plots further showed that the correlation between TWins and SOSPG was lower for Cinderella teams than random teams. This adds more evidence to the claim that the teams that become Cinderellas are random. 
+
+
+
+## Explanation For Randomness in College Basketball
+
+Sometimes the better team just loses. For example, in 2018 Virginia went into the tournament as a 1 seed with 31 wins to their 3 loses and a strength of schedule of 9.07.  To many experts they were the clear favorite to win the tournament despite the recent loss of their fourth leading scorer and starting forward De’Andre Hunter (Sports Reference). They drew 16 seed UMBC as their first round opponent. UMBC had compiled 25 wins to their 11 loses with a strength of schedule of -3.87. The discrepancy in strength of schedule is most notable because even though Virginia had a much tougher schedule according to the stats, they still had more wins than UMBC. Not only that, but in nearly every single statistical category Virginia had better stats while facing a harder schedule. Virginia allowed on average 14 points less per game than UMBC, while beating teams by an average margin of 13 points compared to UMBC’s average of 4 points. Worse for UMBC, no 16 seed had ever beaten a number 1 seed before. Both the odds and statistics were in Virginia’s favor, despite the loss of Hunter. What happened next shocked the basketball community : UMBC destroyed Virginia. UMBC scored 74 points, 20 more points than UVA gave up on average, while Virginia only scored 54 points, 10 points less than their season average. This is a prime example of a game that could not have been predicted by stats. Virginia clearly missed Hunter dearly. How can one quantitate the loss of a starting player. There are many implicit parts of basketball that cannot be measured by stats such as momentum and chemistry. The loss of Hunter clearly hurt Virginia’s chemistry dearly. It is also possible that UMBC played the best game of their lives, once again basketball is unpredictable. When this type of game happens multiple times a Cinderella is formed. This is a perfect example of the unpredictability of college basketball.
+
+#### Code for Analyzing UMBC vs UVa
+```{r uvavsumbc}
+
+refinedUVa<- filter(allCombined, School == "Virginia NCAA")
+refinedUMBC <- filter(allCombined, School == "Maryland-Baltimore County NCAA")
+uvaUMBC <- rbind(refinedUVa,refinedUMBC)
+
+view(uvaUMBC)
+
+
+```
+
+
+
+
+## Conclusion
+Once again, college basketball is extremely unpredictable, but then again sports aren’t supposed to be predictable. Outside of the observation that any team with a negative SOSPG is likely to not get past the second round and thus teams with a negative SOSPG are extremely unlikely to become Cinderellas, I was unable to find a statistic that could reliably be used to predict what teams would become Cinderellas. In doing so accept the null hypothesis that there is no stat that can do so. As Brian Mull stated in an NCAA.com article : “Chartier has crafted statistical models for teams built around a superstar like Curry, but they haven’t produced reliable results. So maybe there’s magic in March that can’t be quantified.” (Mull). I think that ultimately not having data points for the Cinderella teams hindered my analysis more than anything else. I think that in the future once there are more data points for Cinderella teams, there will be a way to better predict which teams will shock the country. Or, maybe the process of becoming a Cinderella will remain completely random and a mystery.
+
+#### Works Cited
+
+Works Cited
+https://bleacherreport.com/articles/2764254-virginias-deandre-hunter-to-miss-ncaa-tournament-after-suffering-wrist-injury
+https://www.sports-reference.com/cbb/schools/virginia/2018.html
+https://www.boydsbets.com/bracket-tips-by-seed
+https://www.ncaa.com/news/basketball-men/2019-03-06/march-madness-three-traits-cinderella-must-have
+
+
+
+
+#### Random analysis I conducted in the process of making this project
+```{r analysis}
+
+
+#comparing cinderellas and one hit wonders
+cindavMarg <- mean(cinderella$avMarg)
+nonCinavMarg <- mean(nonCinderella$avMarg)
+cindWins <- mean(cinderella$W)
+nonCindWins <-mean(nonCinderella$W)
+vars <- c('Cinderella','NonCinderella')
+means <- c(cindavMarg, nonCinavMarg)
+wins <- c(cindWins, nonCindWins)
+data <- data.frame(vars,means)
+View(data)
+ggplot(data, aes(x =vars, y = means, fill = vars))+geom_bar(stat="identity") +ggtitle("Average margin of victory by Cinderella and NonCinderella teams ")+ xlab('Team type') + ylab("Average margin of victory \n (in points) ")
+
+ggplot(data, aes(x =vars, y = wins,fill = vars))+geom_bar(stat="identity") +ggtitle("Number of Wins For Cinderella Teams vs. the Number of Wins\n For Non-Cinderella Teams ")+ xlab('Team type') + ylab("Wins")
+
+#TO DO
+
+# adjust ppg and oppg by yearly averages
+
+#ggplot(combined)+geom_point(aes(x = TWins, y=SOS, color = School))+geom_smooth(method =lm, aes(x = TWins, y=SOS))+ggtitle(" A Team's Strenth of Schedule \n Related to the Number of \n Wins They Had in the Tournament")+ xlab("Wins in Tournament")+ ylab("Strength of Schedule")
+#cor(combined$TWins,combined$SOS)
+
+#E
+
+
+
+ggplot(combined)+geom_point(aes(x = TWins, y=avMarg,color = School))+geom_smooth(method =lm, aes(x = TWins, y=avMarg))+ggtitle("Average Margin of Victory Related to the Number of Wins \n a Cinderella Team Had in the Tournament")+ xlab("Wins in Tournament")+ ylab("Average margin of victory \n (in points) ")
+lm(avMarg~TWins, data = combined)
+
+
+t.test(combined$TWins,combined$avMarg)
+cor(combined$TWins,combined$avMarg)
+
+
+
+
+ggplot(combined)+geom_point(aes(x = TWins, y=TOV, color = School))+geom_smooth(aes(x = TWins, y=TOV))
+
+ggplot(allCombinedYears)+geom_bin2d(aes(x = W, y=avMarg))+geom_smooth(method= 'lm',aes(x = W, y=avMarg))+ggtitle("Number of Wins Related to Average Margin of Victory from 2013-2018 \n (ALL TEAMS)")+ xlab("Wins")+ ylab("Average margin of victory \n (in points) ")
+
+ggplot(cinderella)+geom_bin2d(aes(x = W, y=avMarg))+ggtitle("Number of Wins Related to Average Margin of Victory by Cinderella Teams")+ xlab("Wins")+ ylab("Average margin of victory \n (in points) ")
+ggplot(cinderella)+geom_bin2d(aes(x = W, y=avMarg))+geom_smooth(method = 'lm', aes(x = W, y=avMarg))+ggtitle("Regression of Average Margin of Victory With Respect \n to Wins by Cinderella Teams")+ xlab("Wins")+ ylab("Average margin of victory \n (in points) ")
+
+ggplot(allCombinedYears)+geom_bin2d(aes(x = W, y=avMarg))+geom_smooth(method= 'lm',aes(x = W, y=avMarg))+ggtitle("Number of Wins Related to Average Margin of Victory from 2013-2018")+ xlab("Wins")+ ylab("Average margin of victory \n (in points) ")
+
+ggplot(combined)+geom_boxplot(aes(x = W, y=ppg),fill = 'blue')+facet_wrap(~cinderellaStat)+ggtitle("Points per game related to wins of Cinderella \n and nonCinderella teams")+ xlab("Wins")+ ylab("Points per game")
+
+ggplot(combined)+geom_point(aes(x = TWins, y=oPpg, color = cinderellaStat))+geom_smooth(aes(x = TWins, y=oPpg))
+cor(combined$TWins,combined$oPpg)
+
+
+
+
+ggplot(cinderella)+geom_point(aes(x = TWins, y=turnPerGame, color = School))+geom_smooth(method = 'lm',aes(x = TWins, y=turnPerGame))
+cor(combined$TWins,combined$oPpg)
+ggplot(balancers)+geom_point(aes(x = TWins, y=turnPerGame, color = School))+geom_smooth(method = 'lm', aes(x = TWins, y=turnPerGame))
+cor(combined$TWins,combined$oPpg)
+
+
+#CREATE A MODEL THAT PREDICTS THE AMOUNT OF TOURNAMENT WINS A TEAM WILL HAVE BASED ON TURNOVERS OR AV MARGIN AND RUN IT ON THE 2019 TEAMS
+```
+
